@@ -53,13 +53,17 @@ decode_results results;
 //gear speed
 int motorSpeed = 150;
 
-//obstacle
-const int slowDistance = 25;
+//obstacle editable variables
+const int slowDistance = 25; //10cm
+const int stopDistance = 10; //10cm
+const long reSlowTime = 10000; //10s
+const long reStopTime = 10000; //10s
+//obstacle uneditable variables
 boolean disableDistanceSlow = false;
 boolean disableDistanceStop = false;
-unsigned long previousMillis = 0;
+unsigned long previousMillisSlow = 0;
+unsigned long previousMillisStop = 0;
 unsigned long currentMillis;
-const long slowTime = 10000; //10s
 
 void setup() {
   Serial.begin(9600);
@@ -147,17 +151,28 @@ void loop() {
 
   updateDistance();
 
-//slow if an obstacle comes within "slowDistance", movement is unblocked by a button press and a then slowed back if a obstacle is within "slowDistance"
+//slow to 50% if an obstacle comes within "slowDistance", movement is unblocked by a button press and a then slowed back if a obstacle is within "slowDistance"
   currentMillis = millis();
-  if (currentMillis - previousMillis >= slowTime && disableDistanceSlow == true){
-    disableDistanceSlow = false;
-    previousMillis = currentMillis;
-    log("distance slow ON", true);
-  }
-  if(distanceLeft<slowDistance && disableDistanceSlow == false){
+  if((distanceLeft <= slowDistance || distanceRight <= slowDistance) && disableDistanceSlow == false){
     runMotors(0.5);
     disableDistanceSlow = true;
     log("slow motors", true);
+  }
+  if (((currentMillis - previousMillisSlow >= reSlowTime && disableDistanceSlow == true) && distanceLeft > slowDistance) && distanceRight > slowDistance){
+    disableDistanceSlow = false;
+    previousMillisSlow = currentMillis;
+    log("distance slow ON", true);
+  }
+
+  if((distanceLeft <= stopDistance || distanceRight <= stopDistance) && disableDistanceStop == false){
+    runMotors(0.0);
+    disableDistanceStop = true;
+    log("stop motors", true);
+  }
+  if (((currentMillis - previousMillisStop >= reStopTime && disableDistanceStop == true) && distanceLeft > slowDistance) && distanceRight > slowDistance){
+    disableDistanceStop = false;
+    previousMillisStop = currentMillis;
+    log("distance stop ON", true);
   }
 }
 /**
@@ -210,7 +225,7 @@ void updateDistance(){
   durationRight = pulseIn(echoPinR, HIGH);
 
   // Calculating the distance
-  distanceLeft = durationLeft*0.034/2;
+  distanceLeft = durationLeft*0.034/2;    //29.1
   distanceRight = durationRight*0.034/2;
   // Prints the distance on the Serial Monitor
   /*
