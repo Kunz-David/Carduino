@@ -93,11 +93,11 @@ void loop() {
         log("CMD: Go straight", loggingOn);
         break;
       case 0xFF5AA5: // Turn right (button ►)
-        setMovementVars(2.0/3.0, 0.0, FORWARD, FORWARD);
+        setMovementVars(1.0, 1.0/3.0, FORWARD, FORWARD);
         log("CMD: Turn right", loggingOn);
         break;
       case 0xFF10EF: // Turn left (button ◄)
-        setMovementVars(0.0, 2.0/3.0, FORWARD, FORWARD);
+        setMovementVars(1.0/3.0, 1.0, FORWARD, FORWARD);
         log("CMD: Turn left", loggingOn);
         break;
       case 0xFF4AB5: // Go backwards (button ▼)
