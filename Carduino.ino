@@ -95,7 +95,7 @@ class ChangeSpeed
 
   void CheckForObstacle(){ //checks for an obstacle for the actual object if its within changeSpeedDistance it makes a sound and changes the speed to speedPercentage
     unsigned long currentMillis = millis();
-    if(0 < distance[0] <= changeSpeedDistance || 0 < distance[1] <= changeSpeedDistance || 0 < distance[2] <= changeSpeedDistance){
+    if((0 < distance[0] && distance[0] <= changeSpeedDistance) || (0 < distance[1] && distance[1] <= changeSpeedDistance) || (0 < distance[2] && distance[2] <= changeSpeedDistance)){
       //add tone here
       if(disableChangeSpeed == false){
         runMotors(speedPercentage);
