@@ -1,43 +1,31 @@
 #include <IRremote.h>
-#include <SD.h>
-#include <SPI.h>
 #include <PrintEx.h>
+#include <NewPing.h>
 
 //libraries used by Motor Shield
 #include <Wire.h>
 #include <Adafruit_MotorShield.h>
 //#include "utility/Adafruit_MS_PWMServoDriver.h"
 
-//create a file to write to for testing
-File myFile;
-//SD card
-const int csPin = 53;
-
-//printf
-StreamEx mySerial = Serial;
-
 //logging
-boolean loggingOn = false;
-
-//pins
-const int trigPinL = 33;
-const int echoPinL = 31;
-const int trigPinR = 37;
-const int echoPinR = 35;
+StreamEx mySerial = Serial;
+void log(String command, boolean logOn = true);
+boolean loggingOn = true;
 
 // ultrasonic variables
-long durationLeft;
-int distanceLeft;
-long durationRight;
-int distanceRight;
+#define NUMBER_OF_SONARS 3      // Number of sensors.
+#define MAX_MEASURE_DISTANCE 200 // Maximum distance (in cm) to ping.
+NewPing sonar[NUMBER_OF_SONARS] = {   // Sensor object array.
+  NewPing(35, 33, MAX_MEASURE_DISTANCE), //left sonar
+  NewPing(41, 39, MAX_MEASURE_DISTANCE), // middle sonar
+  NewPing(47, 45, MAX_MEASURE_DISTANCE)  //right sonar
+};
+int distance[NUMBER_OF_SONARS];
 
 //motorshield object
 Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 Adafruit_DCMotor *motorL = AFMS.getMotor(1);
 Adafruit_DCMotor *motorR = AFMS.getMotor(2);
-
-//loop logic
-boolean running = true;
 
 //motor variables
 float speedRightCoefficient = 0.0;
@@ -53,29 +41,80 @@ decode_results results;
 //gear speed
 int motorSpeed = 150;
 
-//obstacle editable variables
-const int slowDistance = 25; //10cm
-const int stopDistance = 10; //10cm
-const long reSlowTime = 10000; //10s
-const long reStopTime = 10000; //10s
-//obstacle uneditable variables
-boolean disableDistanceSlow = false;
-boolean disableDistanceStop = false;
-unsigned long previousMillisSlow = 0;
-unsigned long previousMillisStop = 0;
-unsigned long currentMillis;
+void setMovementVars(float spdL, float spdR, uint8_t direcL, uint8_t direcR){
+  speedLeftCoefficient = spdL;
+  speedRightCoefficient = spdR;
+  directionLeft = direcL;
+  directionRight = direcR;
+}
+
+void log(String command, boolean logOn = true){
+  if (logOn == true){
+    float secs = millis()/1000.0;
+    Serial.println(command);
+    mySerial.printf("Data:\t(%.1f)\n\tSpeedLeftCoefficient: %.2f\n\tspeedRightCoefficient: %.2f\n\tdistance Left: %d\n\tdistance Middle: %d\n\tdistance Right: %d\n",
+                                secs, speedLeftCoefficient, speedRightCoefficient, distance[0], distance[1], distance[2]);
+  }
+}
+
+void updateDistance(){
+  for (uint8_t i = 0; i < NUMBER_OF_SONARS; i++){
+    distance[i] = sonar[i].ping_cm();
+  }
+}
+
+void runMotors(float spdPer){
+  motorR->setSpeed(speedRightCoefficient*motorSpeed*spdPer);
+  motorL->setSpeed(speedLeftCoefficient*motorSpeed*spdPer);
+  motorR->run(directionRight);
+  motorL->run(directionLeft);
+}
+
+class ChangeSpeed
+{
+	// Class Member Variables
+	// These are initialized at startup
+	float speedPercentage;
+	int changeSpeedDistance;
+	int resetTime;
+  boolean disableChangeSpeed;
+	unsigned long previousMillis;  	//stores when them speed was last modified
+
+  // Constructor - creates a ChangeSpeedAt
+  // and initializes the member variables and state
+  public:
+  ChangeSpeed(int chSpdDis, int resTime, float spdPer) //add tone variables
+  {
+  changeSpeedDistance = chSpdDis;
+  resetTime = resTime*1000;
+  speedPercentage = spdPer;
+
+	previousMillis = 0;
+  disableChangeSpeed = false;
+  }
+
+  void CheckForObstacle(){ //checks for an obstacle for the actual object if its within changeSpeedDistance it makes a sound and changes the speed to speedPercentage
+    unsigned long currentMillis = millis();
+    if(0 < distance[0] <= changeSpeedDistance || 0 < distance[1] <= changeSpeedDistance || 0 < distance[2] <= changeSpeedDistance){
+      //add tone here
+      if(disableChangeSpeed == false){
+        runMotors(speedPercentage);
+        disableChangeSpeed = true;
+        previousMillis = currentMillis;
+        log("EVENT: Change speed");
+      }
+    }
+    if(currentMillis - previousMillis >= resetTime){
+      disableChangeSpeed = false;
+    }
+  }
+};
+
+ChangeSpeed slow(25, 10, 0.5);
+ChangeSpeed stop(10, 10, 0.0);
 
 void setup() {
   Serial.begin(9600);
-
-  //ultrasonic
-  pinMode(trigPinL, OUTPUT);
-  pinMode(echoPinL, INPUT);
-  pinMode(trigPinR, OUTPUT);
-  pinMode(echoPinR, INPUT);
-
-  //SD card
-  pinMode(csPin, OUTPUT);
 
   //motors
   AFMS.begin();
@@ -141,7 +180,7 @@ void loop() {
         if(motorSpeed > 255) motorSpeed = 255;
         break;
       case 0xFFE01F: // print everything (button 7)
-        log("CMD: Check data", true);
+        log("CMD: Check data");
         break;
     }
     runMotors(1.0);
@@ -151,87 +190,6 @@ void loop() {
 
   updateDistance();
 
-//slow to 50% if an obstacle comes within "slowDistance", movement is unblocked by a button press and a then slowed back if a obstacle is within "slowDistance"
-  currentMillis = millis();
-  if((distanceLeft <= slowDistance || distanceRight <= slowDistance) && disableDistanceSlow == false){
-    runMotors(0.5);
-    disableDistanceSlow = true;
-    log("slow motors", true);
-  }
-  if (((currentMillis - previousMillisSlow >= reSlowTime && disableDistanceSlow == true) && distanceLeft > slowDistance) && distanceRight > slowDistance){
-    disableDistanceSlow = false;
-    previousMillisSlow = currentMillis;
-    log("distance slow ON", true);
-  }
-
-  if((distanceLeft <= stopDistance || distanceRight <= stopDistance) && disableDistanceStop == false){
-    runMotors(0.0);
-    disableDistanceStop = true;
-    log("stop motors", true);
-  }
-  if (((currentMillis - previousMillisStop >= reStopTime && disableDistanceStop == true) && distanceLeft > slowDistance) && distanceRight > slowDistance){
-    disableDistanceStop = false;
-    previousMillisStop = currentMillis;
-    log("distance stop ON", true);
-  }
-}
-/**
- * [setMovementVars description]
- * @param speedL     [description]
- * @param speedR     [description]
- * @param directionL [description]
- * @param directionR [description]
- */
-void setMovementVars(float spL, float spR, uint8_t direcL, uint8_t direcR){
-  speedLeftCoefficient = spL;
-  speedRightCoefficient = spR;
-  directionLeft = direcL;
-  directionRight = direcR;
-}
-
-void runMotors(float spPer){
-  motorR->setSpeed(speedRightCoefficient*motorSpeed*spPer);
-  motorL->setSpeed(speedLeftCoefficient*motorSpeed*spPer);
-  motorR->run(directionRight);
-  motorL->run(directionLeft);
-}
-
-void log(String command, boolean logOn){
-  if (logOn == true){
-    float secs = millis()/1000.0;
-    Serial.println(command);
-    mySerial.printf("Data:\t(%.1f)\n\tSpeedLeftCoefficient: %.2f\n\tspeedRightCoefficient: %.2f\n\tdirectionLeft: %d\n\tdirectionRight: %d\n\tdistanceLeft: %d\n\tdistanceRight: %d\n", secs, speedLeftCoefficient, speedRightCoefficient, directionLeft, directionRight, distanceLeft, distanceRight);
-    myFile = SD.open("log.txt", FILE_WRITE);
-    myFile.println(command);
-    myFile.close();
-  }
-}
-
-void updateDistance(){
-  // Clears the trigPin
-  digitalWrite(trigPinL, LOW);
-  digitalWrite(trigPinR, LOW);
-  delayMicroseconds(2);
-
-  // Sets the trigPin on HIGH state for 10 micro seconds
-  digitalWrite(trigPinL, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPinL, LOW);
-  durationLeft = pulseIn(echoPinL, HIGH);
-
-  digitalWrite(trigPinR, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPinR, LOW);
-  durationRight = pulseIn(echoPinR, HIGH);
-
-  // Calculating the distance
-  distanceLeft = durationLeft*0.034/2;    //29.1
-  distanceRight = durationRight*0.034/2;
-  // Prints the distance on the Serial Monitor
-  /*
-  Serial.print("L: ");
-  Serial.print(distanceLeft);
-  Serial.print("  R: ");
-  Serial.println(distanceRight);
-  */
+  slow.CheckForObstacle();
+  stop.CheckForObstacle();
 }

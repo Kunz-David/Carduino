@@ -4,3 +4,4 @@
 **mozna neprehlednejsi
 *repair distance obstacle check --> restart motors once obstacle is removed
 **fíčura
+*loop takes to long to execute
