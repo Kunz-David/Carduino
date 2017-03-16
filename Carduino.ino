@@ -85,7 +85,7 @@ class ChangeSpeed
   //toneAC( frequency [, volume [, length [, background ]]] )
   unsigned int toneFrequency;
   int toneVolume; // 0 --> turned off, 1-10 --> range
-  unsigned int toneLenght; //in millis
+  unsigned int toneLength; //in millis
   boolean toneBackground; //Play note in background or pause till finished? (default: false, values: true/false)
 
   // Constructor - creates a ChangeSpeed object
@@ -100,7 +100,7 @@ class ChangeSpeed
   //toneVariables:
   toneFrequency = toneFreq;
   toneVolume = 5;
-  toneLenght = 500;
+  toneLength = 500;
   toneBackground = false; //already default - not needed here
 
 	previousMillis = 0;
