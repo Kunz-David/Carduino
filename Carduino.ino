@@ -1,6 +1,7 @@
 #include <IRremote.h>
 #include <PrintEx.h>
 #include <NewPing.h>
+#include <toneAC.h> //use pins 11 & 12 pwm
 
 //libraries used by Motor Shield
 #include <Wire.h>
@@ -80,14 +81,27 @@ class ChangeSpeed
   boolean disableChangeSpeed;
 	unsigned long previousMillis;  	//stores when them speed was last modified
 
-  // Constructor - creates a ChangeSpeedAt
+  //tone variables
+  //toneAC( frequency [, volume [, length [, background ]]] )
+  unsigned int toneFrequency;
+  int toneVolume; // 0 --> turned off, 1-10 --> range
+  unsigned int toneLenght; //in millis
+  boolean toneBackground; //Play note in background or pause till finished? (default: false, values: true/false)
+
+  // Constructor - creates a ChangeSpeed object
   // and initializes the member variables and state
   public:
-  ChangeSpeed(int chSpdDis, int resTime, float spdPer) //add tone variables
+  ChangeSpeed(int chSpdDis, int resTime, int toneFreq, float spdPer) //add tone variables
   {
   changeSpeedDistance = chSpdDis;
   resetTime = resTime*1000;
   speedPercentage = spdPer;
+
+  //toneVariables:
+  toneFrequency = toneFreq;
+  toneVolume = 5;
+  toneLenght = 500;
+  toneBackground = false; //already default - not needed here
 
 	previousMillis = 0;
   disableChangeSpeed = false;
@@ -96,22 +110,22 @@ class ChangeSpeed
   void CheckForObstacle(){ //checks for an obstacle for the actual object if its within changeSpeedDistance it makes a sound and changes the speed to speedPercentage
     unsigned long currentMillis = millis();
     if((0 < distance[0] && distance[0] <= changeSpeedDistance) || (0 < distance[1] && distance[1] <= changeSpeedDistance) || (0 < distance[2] && distance[2] <= changeSpeedDistance)){
-      //add tone here
+      //add tone here:
+      toneAC(toneFrequency, toneVolume, toneLength, toneBackground);
       if(disableChangeSpeed == false){
         runMotors(speedPercentage);
         disableChangeSpeed = true;
         previousMillis = currentMillis;
         log("EVENT: Change speed");
       }
-    }
-    if(currentMillis - previousMillis >= resetTime){
+    } else if(currentMillis - previousMillis >= resetTime){
       disableChangeSpeed = false;
     }
   }
 };
 
-ChangeSpeed slow(25, 10, 0.5);
-ChangeSpeed stop(10, 10, 0.0);
+ChangeSpeed slow(25, 3000, 10, 0.5);
+ChangeSpeed stop(10, 2000, 10, 0.0);
 
 void setup() {
   Serial.begin(9600);
