@@ -61,6 +61,7 @@ void log(String command, boolean logOn = true){
 void updateDistance(){
   for (uint8_t i = 0; i < NUMBER_OF_SONARS; i++){
     distance[i] = sonar[i].ping_cm();
+    delay(15); //it takes 11,8ms for signal that bounces off an obstacle 200cm away to return
   }
 }
 
@@ -73,45 +74,47 @@ void runMotors(float spdPer){
 
 class ChangeSpeed
 {
-	// Class Member Variables
-	// These are initialized at startup
 	float speedPercentage;
 	int changeSpeedDistance;
 	int resetTime;
   boolean disableChangeSpeed;
 	unsigned long previousMillis;  	//stores when them speed was last modified
 
+  // Constructor - creates a ChangeSpeedAt
+  // and initializes the member variables and state
+
   //tone variables
   //toneAC( frequency [, volume [, length [, background ]]] )
-  unsigned int toneFrequency;
-  int toneVolume; // 0 --> turned off, 1-10 --> range
-  unsigned int toneLength; //in millis
-  boolean toneBackground; //Play note in background or pause till finished? (default: false, values: true/false)
+  int toneFrequency;
+  int toneVolume;
+  int toneLength;
 
-  // Constructor - creates a ChangeSpeed object
-  // and initializes the member variables and state
   public:
-  ChangeSpeed(int chSpdDis, int resTime, int toneFreq, float spdPer) //add tone variables
+  ChangeSpeed(int changeSpeeddDis, int resTime, int toneFreq, float speedPer) //add tone variables
+    : speedPercentage(speedPer),
+      changeSpeedDistance(changeSpeeddDis),
+      resetTime(resTime*1000),
+      disableChangeSpeed(false),
+      previousMillis(0),
+      toneFrequency(toneFreq),
+      toneVolume(8),
+      toneLength(500)
   {
-  changeSpeedDistance = chSpdDis;
-  resetTime = resTime*1000;
-  speedPercentage = spdPer;
+    /*
+    changeSpeedDistance = chSpdDis;
+    resetTime = resTime*1000;
+    speedPercentage = spdPer;
 
-  //toneVariables:
-  toneFrequency = toneFreq;
-  toneVolume = 5;
-  toneLength = 500;
-  toneBackground = false; //already default - not needed here
-
-	previousMillis = 0;
-  disableChangeSpeed = false;
+  	previousMillis = 0;
+    disableChangeSpeed = false;
+    */
   }
 
   void CheckForObstacle(){ //checks for an obstacle for the actual object if its within changeSpeedDistance it makes a sound and changes the speed to speedPercentage
     unsigned long currentMillis = millis();
     if((0 < distance[0] && distance[0] <= changeSpeedDistance) || (0 < distance[1] && distance[1] <= changeSpeedDistance) || (0 < distance[2] && distance[2] <= changeSpeedDistance)){
-      //add tone here:
-      toneAC(toneFrequency, toneVolume, toneLength, toneBackground);
+      //add tone here
+      toneAC(toneFrequency, toneVolume, toneLength);
       if(disableChangeSpeed == false){
         runMotors(speedPercentage);
         disableChangeSpeed = true;
@@ -124,8 +127,8 @@ class ChangeSpeed
   }
 };
 
-ChangeSpeed slow(25, 3000, 10, 0.5);
-ChangeSpeed stop(10, 2000, 10, 0.0);
+ChangeSpeed slow(25, 10, 3000, 0.5);
+ChangeSpeed stop(10, 10, 3000, 0.0);
 
 void setup() {
   Serial.begin(9600);
