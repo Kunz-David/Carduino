@@ -1,12 +1,17 @@
-#include <IRremote.h>
-#include <PrintEx.h>
-#include <NewPing.h>
-#include <toneAC.h> //use pins 11 & 12 pwm
+/**
+ * @file Carduino.ino
+ * @Author David Kunz
+ * @date March, 2017
+ * @brief Code running on the Arduino Mega unit.
+ */
 
-//libraries used by Motor Shield
-#include <Wire.h>
-#include <Adafruit_MotorShield.h>
-//#include "utility/Adafruit_MS_PWMServoDriver.h"
+//include used libraries:
+#include <IRremote.h> //IR reciever library (https://github.com/z3t0/Arduino-IRremote)
+#include <PrintEx.h> //StreamEx library (used because of the lack of pritf in Arduino) (https://github.com/Chris--A/PrintEx)
+#include <NewPing.h> //Ultrasonic library (https://bitbucket.org/teckel12/arduino-new-ping/wiki/Home)
+#include <toneAC.h> //use pins 11 & 12 pwm (https://bitbucket.org/teckel12/arduino-toneac/wiki/Home)
+#include <Wire.h> //Two Wire Interface (TWI/I2C)(used by the Adafruit Motor Shield) (http://playground.arduino.cc/Main/WireLibraryDetailedReference)
+#include <Adafruit_MotorShield.h> //AdafruitMotorShield library (https://learn.adafruit.com/adafruit-motor-shield-v2-for-arduino/library-reference)
 
 //logging
 StreamEx mySerial = Serial;
@@ -14,7 +19,7 @@ void log(String command, boolean logOn = true);
 boolean loggingOn = true;
 
 // ultrasonic variables
-#define NUMBER_OF_SONARS 3      // Number of sensors.
+#define NUMBER_OF_SONARS 3
 #define MAX_MEASURE_DISTANCE 200 // Maximum distance (in cm) to ping.
 NewPing sonar[NUMBER_OF_SONARS] = {   // Sensor object array.
   NewPing(35, 33, MAX_MEASURE_DISTANCE), //left sonar
@@ -35,13 +40,19 @@ uint8_t directionRight = RELEASE;
 uint8_t directionLeft = RELEASE;
 
 //IR reciever
-const int receiverPin = 24;
-IRrecv irrecv(receiverPin);
+#define RECEIVER_PIN 24
+IRrecv irrecv(RECEIVER_PIN);
 decode_results results;
 
 //gear speed
 int motorSpeed = 150;
-
+/**
+ * [setMovementVars description]
+ * @param spdL   [description]
+ * @param spdR   [description]
+ * @param direcL [description]
+ * @param direcR [description]
+ */
 void setMovementVars(float spdL, float spdR, uint8_t direcL, uint8_t direcR){
   speedLeftCoefficient = spdL;
   speedRightCoefficient = spdR;
@@ -76,6 +87,7 @@ class ChangeSpeed
 {
 	float speedPercentage;
 	int changeSpeedDistance;
+  int endChangeSpeedDistance;
 	int resetTime;
   boolean disableChangeSpeed;
 	unsigned long previousMillis;  	//stores when them speed was last modified
@@ -90,15 +102,16 @@ class ChangeSpeed
   int toneLength;
 
   public:
-  ChangeSpeed(int changeSpeeddDis, int resTime, int toneFreq, float speedPer) //add tone variables
+  ChangeSpeed(int changeSpeeddDis, int endChangeSpeedDis, int toneFreq, float speedPer) //add tone variables
     : speedPercentage(speedPer),
       changeSpeedDistance(changeSpeeddDis),
-      resetTime(resTime*1000),
+      endChangeSpeedDistance(endChangeSpeedDis),
+      resetTime(5000),
       disableChangeSpeed(false),
       previousMillis(0),
       toneFrequency(toneFreq),
       toneVolume(8),
-      toneLength(500)
+      toneLength(2)
   {
     /*
     changeSpeedDistance = chSpdDis;
@@ -112,7 +125,7 @@ class ChangeSpeed
 
   void CheckForObstacle(){ //checks for an obstacle for the actual object if its within changeSpeedDistance it makes a sound and changes the speed to speedPercentage
     unsigned long currentMillis = millis();
-    if((0 < distance[0] && distance[0] <= changeSpeedDistance) || (0 < distance[1] && distance[1] <= changeSpeedDistance) || (0 < distance[2] && distance[2] <= changeSpeedDistance)){
+    if((0 < distance[0] && distance[0] <= changeSpeedDistance && endChangeSpeedDistance < distance[0]) || (0 < distance[1] && distance[1] <= changeSpeedDistance && endChangeSpeedDistance < distance[1]) || (0 < distance[2] && distance[2] <= changeSpeedDistance && endChangeSpeedDistance < distance[2])){
       //add tone here
       toneAC(toneFrequency, toneVolume, toneLength);
       if(disableChangeSpeed == false){
@@ -127,8 +140,8 @@ class ChangeSpeed
   }
 };
 
-ChangeSpeed slow(25, 10, 3000, 0.5);
-ChangeSpeed stop(10, 10, 3000, 0.0);
+ChangeSpeed slow(35, 20, 3000, 0.5);
+ChangeSpeed stop(20, 0, 3500, 0.0);
 
 void setup() {
   Serial.begin(9600);
