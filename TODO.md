@@ -8,3 +8,5 @@
   + solution: make global static variable speedPercentage and call runMotors with the var (at the end of the loop)
     - set speedPercentage in switch
   * ignore (only restarts once it gets 1 result with distance over the stop limit)
+* merge serial and my serial in log
+* add documentation to motor class (add void?)

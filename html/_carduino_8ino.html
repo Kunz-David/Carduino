@@ -97,20 +97,17 @@ Macros</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:aa96c09838a0410e1e9cde4c7a92763fc"><td class="memItemLeft" align="right" valign="top"><a id="aa96c09838a0410e1e9cde4c7a92763fc"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>log</b> (String command, boolean logOn=true)</td></tr>
+<tr class="memitem:aa96c09838a0410e1e9cde4c7a92763fc"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="_carduino_8ino.html#aa96c09838a0410e1e9cde4c7a92763fc">log</a> (String command, boolean logOn=true)</td></tr>
 <tr class="separator:aa96c09838a0410e1e9cde4c7a92763fc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae4603c76926e9a26f156a1a536767c46"><td class="memItemLeft" align="right" valign="top"><a id="ae4603c76926e9a26f156a1a536767c46"></a>
 IRrecv&#160;</td><td class="memItemRight" valign="bottom"><b>irrecv</b> (RECEIVER_PIN)</td></tr>
 <tr class="separator:ae4603c76926e9a26f156a1a536767c46"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aac5b2b0c2b42a2da5901a6996e40532c"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="_carduino_8ino.html#aac5b2b0c2b42a2da5901a6996e40532c">setMovementVars</a> (float spdL, float spdR, uint8_t direcL, uint8_t direcR)</td></tr>
 <tr class="separator:aac5b2b0c2b42a2da5901a6996e40532c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab020f4642843ef16fb6d18868ede5f04"><td class="memItemLeft" align="right" valign="top"><a id="ab020f4642843ef16fb6d18868ede5f04"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>updateDistance</b> ()</td></tr>
+<tr class="memitem:ab020f4642843ef16fb6d18868ede5f04"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="_carduino_8ino.html#ab020f4642843ef16fb6d18868ede5f04">updateDistance</a> ()</td></tr>
 <tr class="separator:ab020f4642843ef16fb6d18868ede5f04"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a10723274b3f3940c504ae470160dcb84"><td class="memItemLeft" align="right" valign="top"><a id="a10723274b3f3940c504ae470160dcb84"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>runMotors</b> (float spdPer)</td></tr>
-<tr class="separator:a10723274b3f3940c504ae470160dcb84"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ada7680b2f4a1d6593209c54c35b561b3"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="_carduino_8ino.html#ada7680b2f4a1d6593209c54c35b561b3">runMotors</a> (float speedPercentage)</td></tr>
+<tr class="separator:ada7680b2f4a1d6593209c54c35b561b3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4fc01d736fe50cf5b977f755b675f11d"><td class="memItemLeft" align="right" valign="top"><a id="a4fc01d736fe50cf5b977f755b675f11d"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>setup</b> ()</td></tr>
 <tr class="separator:a4fc01d736fe50cf5b977f755b675f11d"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -169,6 +166,65 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>motorSpeed</b> = 150</
 <div class="textblock"><p>Code running on the Arduino Mega unit. </p>
 <p>David Kunz </p><dl class="section date"><dt>Date</dt><dd>March, 2017 </dd></dl>
 </div><h2 class="groupheader">Function Documentation</h2>
+<a id="aa96c09838a0410e1e9cde4c7a92763fc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa96c09838a0410e1e9cde4c7a92763fc">&#9670;&nbsp;</a></span>log()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void log </td>
+          <td>(</td>
+          <td class="paramtype">String&#160;</td>
+          <td class="paramname"><em>command</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">boolean&#160;</td>
+          <td class="paramname"><em>logOn</em> = <code>true</code>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Prints some current data variables on the serial monitor </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">command</td><td>Title to the data printed </td></tr>
+    <tr><td class="paramname">logOn</td><td>Turns logging on (true) and off (false)(note: true by default) </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="ada7680b2f4a1d6593209c54c35b561b3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ada7680b2f4a1d6593209c54c35b561b3">&#9670;&nbsp;</a></span>runMotors()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void runMotors </td>
+          <td>(</td>
+          <td class="paramtype">float&#160;</td>
+          <td class="paramname"><em>speedPercentage</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Runs the motors at the given total speed percentage. </p><dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">spdPer</td><td>Speed percentage; percentage of total power to both motors. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
 <a id="aac5b2b0c2b42a2da5901a6996e40532c"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aac5b2b0c2b42a2da5901a6996e40532c">&#9670;&nbsp;</a></span>setMovementVars()</h2>
 
@@ -206,15 +262,33 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>motorSpeed</b> = 150</
         </tr>
       </table>
 </div><div class="memdoc">
-<p>[setMovementVars description] </p><dl class="params"><dt>Parameters</dt><dd>
+<p>setMovementVars description </p><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">spdL</td><td>[description] </td></tr>
-    <tr><td class="paramname">spdR</td><td>[description] </td></tr>
-    <tr><td class="paramname">direcL</td><td>[description] </td></tr>
-    <tr><td class="paramname">direcR</td><td>[description] </td></tr>
+    <tr><td class="paramname">spdL</td><td>Speed left coefficient; percentage of power given to left motor (values 0.0-1.0) </td></tr>
+    <tr><td class="paramname">spdR</td><td>Speed right coefficient; percentage of power given to left motor (values 0.0-1.0) </td></tr>
+    <tr><td class="paramname">direcL</td><td>Left motor direction; which direrection should the left motor run (values: FORWARD (=1), BACKWARD (=2), RELEASE (=4))(note: is relative to the wiring) </td></tr>
+    <tr><td class="paramname">direcR</td><td>Right motor direction; which direrection should the right motor run (values: FORWARD (=1), BACKWARD (=2), RELEASE (=4))(note: is relative to the wiring) </td></tr>
   </table>
   </dd>
 </dl>
+
+</div>
+</div>
+<a id="ab020f4642843ef16fb6d18868ede5f04"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab020f4642843ef16fb6d18868ede5f04">&#9670;&nbsp;</a></span>updateDistance()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void updateDistance </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Saves current distances found by each sonar to "distance" array note: takes 3x15ms to execute (takes 11,8ms to get ultrasonic output) </p>
 
 </div>
 </div>
