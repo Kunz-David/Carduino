@@ -3,29 +3,29 @@
  * @Author David Kunz
  * @date March, 2017
  * @brief Code running on the Arduino Mega unit.
- * @mainpage Mainpage check
+ * @mainpage Mainpage
  */
 
-//include used libraries:
-//IR reciever library (https://github.com/z3t0/Arduino-IRremote)
+//Include used libraries:
+//IR reciever library (https://github.com/z3t0/Arduino-IRremote).
 #include <IRremote.h>
-//StreamEx library (used because of the lack of pritf in Arduino) (https://github.com/Chris--A/PrintEx)
+//StreamEx library (used because of the lack of pritf in Arduino) (https://github.com/Chris--A/PrintEx).
 #include <PrintEx.h>
-//Ultrasonic library (https://bitbucket.org/teckel12/arduino-new-ping/wiki/Home)
+//Ultrasonic library (https://bitbucket.org/teckel12/arduino-new-ping/wiki/Home).
 #include <NewPing.h>
-//Tone library; use pins 11 & 12 pwm (https://bitbucket.org/teckel12/arduino-toneac/wiki/Home)
+//Tone library; use pins 11 & 12 pwm (https://bitbucket.org/teckel12/arduino-toneac/wiki/Home).
 #include <toneAC.h>
-//Two Wire Interface (TWI/I2C)(used by the Adafruit Motor Shield) (http://playground.arduino.cc/Main/WireLibraryDetailedReference)
+//Two Wire Interface (TWI/I2C)(used by the Adafruit Motor Shield) (http://playground.arduino.cc/Main/WireLibraryDetailedReference).
 #include <Wire.h>
-//AdafruitMotorShield library (https://learn.adafruit.com/adafruit-motor-shield-v2-for-arduino/library-reference)
+//AdafruitMotorShield library (https://learn.adafruit.com/adafruit-motor-shield-v2-for-arduino/library-reference).
 #include <Adafruit_MotorShield.h>
 
-//logging
+//Logging:
 StreamEx mySerial = Serial;
 void log(String command, boolean logOn = true);
 boolean loggingOn = true;
 
-// ultrasonic variables
+//Ultrasonic/Sonar variables:
 #define NUMBER_OF_SONARS 3
 #define MAX_MEASURE_DISTANCE 200 // Maximum distance (in cm) to ping.
 NewPing sonar[NUMBER_OF_SONARS] = {   // Sensor object array.
@@ -35,30 +35,30 @@ NewPing sonar[NUMBER_OF_SONARS] = {   // Sensor object array.
 };
 int distance[NUMBER_OF_SONARS];
 
-//motorshield object
+//Motorshield object:
 Adafruit_MotorShield AFMS = Adafruit_MotorShield();
 Adafruit_DCMotor *motorL = AFMS.getMotor(1);
 Adafruit_DCMotor *motorR = AFMS.getMotor(2);
 
-//motor variables
+//Motor variables:
 float speedRightCoefficient = 0.0;
 float speedLeftCoefficient = 0.0;
 uint8_t directionRight = RELEASE;
 uint8_t directionLeft = RELEASE;
 
-//IR reciever
+//IR reciever:
 #define RECEIVER_PIN 24
 IRrecv irrecv(RECEIVER_PIN);
 decode_results results;
 
-//gear speed
+//Initial gear speed:
 int motorSpeed = 150;
 /**
- * setMovementVars description
- * @param spdL   Speed left coefficient; percentage of power given to left motor (values 0.0-1.0)
- * @param spdR   Speed right coefficient; percentage of power given to left motor (values 0.0-1.0)
- * @param direcL Left motor direction; which direrection should the left motor run (values: FORWARD (=1), BACKWARD (=2), RELEASE (=4))(note: is relative to the wiring)
- * @param direcR Right motor direction; which direrection should the right motor run (values: FORWARD (=1), BACKWARD (=2), RELEASE (=4))(note: is relative to the wiring)
+ * Set speed coefficients and direction for both motors.
+ * @param spdL   Speed left coefficient; percentage of power given to left motor (values 0.0-1.0).
+ * @param spdR   Speed right coefficient; percentage of power given to left motor (values 0.0-1.0).
+ * @param direcL Left motor direction; which direrection should the left motor run (values: FORWARD (=1), BACKWARD (=2), RELEASE (=4))(note: is relative to the wiring).
+ * @param direcR Right motor direction; which direrection should the right motor run (values: FORWARD (=1), BACKWARD (=2), RELEASE (=4))(note: is relative to the wiring).
  */
 void setMovementVars(float spdL, float spdR, uint8_t direcL, uint8_t direcR){
   speedLeftCoefficient = spdL;
@@ -68,9 +68,9 @@ void setMovementVars(float spdL, float spdR, uint8_t direcL, uint8_t direcR){
 }
 
 /**
- * Prints some current data variables on the serial monitor
- * @param command Title to the data printed
- * @param logOn   Turns logging on (true) and off (false)(note: true by default)
+ * Prints some current data variables on the serial monitor.
+ * @param command Title to the data printed.
+ * @param logOn   Turns logging on (true) and off (false)(note: true by default).
  */
 void log(String command, boolean logOn = true){
   if (logOn == true){
@@ -82,8 +82,8 @@ void log(String command, boolean logOn = true){
 }
 
 /**
- * Saves current distances found by each sonar to "distance" array
- * note: takes 3x15ms to execute (takes 11,8ms to get ultrasonic output)
+ * Saves current distances found by each sonar to the distance array.
+ * Note: takes 3x15ms to execute (takes 11,8ms to get ultrasonic output).
  */
 void updateDistance(){
   for (uint8_t i = 0; i < NUMBER_OF_SONARS; i++){
@@ -103,35 +103,43 @@ void runMotors(float speedPercentage){
   motorL->run(directionLeft);
 }
 
+/**
+ * Changes speed and plays a tone when in a certain range from an obstacle.
+ */
 class ChangeSpeed
 {
-	float speedPercentage; //percentage of speed the motors should run when in slow range
-	int changeSpeedDistance; //distance needed for the slow to take effect
-  int endChangeSpeedDistance; //end distance of the slow effect
-	int resetTime; //time that has to pass for the motors to be slow again by the same slow
-  boolean disableChangeSpeed; //stores if the motors are ready to run
-	unsigned long previousMillis;  	//stores when them speed was last modified
+	//Percentage of speed the motors should run when in slow range:
+  float speedPercentage;
+  //Distance needed for the slow to take effect:
+	int changeSpeedDistance;
+  //End distance of the slow effect:
+  int endChangeSpeedDistance;
+  //Time that has to pass for the motors to be slow again by the same slow:
+	int resetTime;
+  //Stores if the motors are ready to run:
+  boolean disableChangeSpeed;
+  //Stores when them speed was last modified:
+	unsigned long previousMillis;
 
-  // Constructor - creates a ChangeSpeedAt
-  // and initializes the member variables and state
-
-  //tone variables
-  //tone object takes vars: toneAC( frequency [, volume [, length [, background ]]] )
+  //Tone variables:
+  //Tone object takes vars: toneAC( frequency [, volume [, length [, background ]]] ).
   int toneFrequency;
   int toneVolume;
   int toneLength;
 
+  // Constructor - creates a ChangeSpeed object and initializes the member variables and state.
+
   public:
     /**
-     * Gets
-     * @param changeSpeeddDis   [description]
-     * @param endChangeSpeedDis [description]
-     * @param toneFreq          [description]
-     * @param speedPer          [description]
+     * Class constructor; creates a ChangeSpeed object and initializes the member variables and state
+     * @param changeSpeeddDis   Start of the distance at which you want the motors to change speed and play tone.
+     * @param endChangeSpeedDis End of the distance at which you want the motors to change speed and play tone.
+     * @param toneFreq          The frequency you want the tone should play.
+     * @param speedPer          The speed the motors will run.
      */
-    ChangeSpeed(int changeSpeeddDis, int endChangeSpeedDis, int toneFreq, float speedPer) //add tone variables
+    ChangeSpeed(int changeSpeedDis, int endChangeSpeedDis, int toneFreq, float speedPer)
       : speedPercentage(speedPer),
-        changeSpeedDistance(changeSpeeddDis),
+        changeSpeedDistance(changeSpeedDis),
         endChangeSpeedDistance(endChangeSpeedDis),
         resetTime(5000),
         disableChangeSpeed(false),
@@ -143,46 +151,58 @@ class ChangeSpeed
     }
 /**
  * Checks if there is an obstacle in the given range (endChangeSpeedDistance-changeSpeedDistance)
- *    If there is: slows motors down to speedPercentage, plays tones (at: toneFrequency, toneFrequency and toneLength) and set a timer which waits 5s && for obstacles to be out of slow range
- *    If there isn`t: if the last speed change occured more than 5s ago it resets the timer and a new slow can occur again
+ *    If there is: slows motors down to speedPercentage, plays tones (at: toneFrequency, toneFrequency and toneLength) and set a timer which waits 5s && for obstacles to be out of slow range.
+ *    If there isn`t: if the last speed change occured more than 5s ago it resets the timer and a new slow can occur again.
  */
-  void CheckForObstacle(){ //checks for an obstacle for the actual object if its within changeSpeedDistance it makes a sound and changes the speed to speedPercentage
+  void CheckForObstacle(){
     unsigned long currentMillis = millis();
-    //opticky zmensit if, rozepsat, odentrovat, komentar
-    if((0 < distance[0] && distance[0] <= changeSpeedDistance && endChangeSpeedDistance < distance[0]) || (0 < distance[1] && distance[1] <= changeSpeedDistance && endChangeSpeedDistance < distance[1]) || (0 < distance[2] && distance[2] <= changeSpeedDistance && endChangeSpeedDistance < distance[2])){
-      //add tone here
+    //opticky zmensit if, rozepsat, odentrovat, komentar:
+    
+    //Check and note if any sonar found an obstacle in the given range.
+    boolean inChangeSpeedRange[NUMBER_OF_SONARS] = {
+      //Left sonar in changeSpeed range:
+      (0 < distance[0] && distance[0] <= changeSpeedDistance && endChangeSpeedDistance < distance[0]), 
+      //Middle sonar in changeSpeed range:
+      (0 < distance[1] && distance[1] <= changeSpeedDistance && endChangeSpeedDistance < distance[1]),
+      //Right sonar in changeSpeed range:
+      (0 < distance[2] && distance[2] <= changeSpeedDistance && endChangeSpeedDistance < distance[2])
+    };
+
+    //If any of the sonars found an obstacle dive into if loop.
+    if(inChangeSpeedRange[0] || inChangeSpeedRange[1] || inChangeSpeedRange[2]){
+      //Play tone.
       toneAC(toneFrequency, toneFrequency, toneLength);
+      //If the speed hasn`t been changed in resetTime (5s) dive into if loop.
       if(disableChangeSpeed == false){
         runMotors(speedPercentage);
         disableChangeSpeed = true;
         previousMillis = currentMillis;
         log("EVENT: Change speed");
       }
+      //If sonars didn`t find an obstacle and resetTime (5s) has passed, speed can be changed again.
     } else if(currentMillis - previousMillis >= resetTime){
       disableChangeSpeed = false;
     }
   }
 };
 
-//make ChangeSpeed objects
+//Make ChangeSpeed objects.
 ChangeSpeed slow(35, 20, 3000, 0.5);
 ChangeSpeed stop(20, 0, 3500, 0.0);
 
 void setup() {
+  //Startup.
   Serial.begin(9600);
-
-  //motors
   AFMS.begin();
-
-  //IR reciever
   irrecv.enableIRIn();
 }
 
 void loop() {
 
-  //dives into for loop if the ir reciever caught a new signal
+  //Dives into for loop if the ir reciever caught a new signal.
   if (irrecv.decode(&results)) {
-    switch (results.value){ //checks if the signal corresponds with any action
+    //Check if the signal corresponds with any action.
+    switch (results.value){
       case 0xFF18E7: // Go straight (button ▲)
         setMovementVars(1.0, 1.0, FORWARD, FORWARD);
         log("CMD: Go straight", loggingOn);
@@ -239,14 +259,17 @@ void loop() {
         log("CMD: Check data");
         break;
     }
-    runMotors(1.0); //runs motors at 100% (without slow)
+    //Runs motors at 100% (without slow).
+    runMotors(1.0);
 
-    irrecv.resume(); //ir reciever waits for new signal input
+    //Reset IR reciever to wait for a new signal.
+    irrecv.resume();
   }
 
-  updateDistance(); //update distance array
+  //Update distance array.
+  updateDistance();
 
-  //slows motor if within slow range
+  //Slows motor if within slow range.
   slow.CheckForObstacle();
   stop.CheckForObstacle();
 }
