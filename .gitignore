@@ -1,4 +1,7 @@
-/html
-/.vscode
-Test.md
-TODO.md
+Carduino/html
+Carduino/.vscode
+Carduino/Test.md
+Carduino/TODO.md
+/UNUSED_LIBRARIES
+/Examples
+/Carduino data
