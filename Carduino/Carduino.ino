@@ -3,7 +3,10 @@
  * @Author David Kunz
  * @date March, 2017
  * @brief Code running on the Arduino Mega unit.
- * @mainpage Mainpage
+ */
+/**
+ *  @defgroup pinLayout Pin Layout
+ *  @brief Layout of all pins used by name in the @ref Carduino.ino.
  */
 
 //Include used libraries:
@@ -21,18 +24,59 @@
 #include <Adafruit_MotorShield.h>
 
 //Logging:
+/*!
+ * @breif Stream extension to create a Serial that can use printf. (Arduino does not have internal support for printf.)
+ */
 StreamEx mySerial = Serial;
-void log(String command, boolean logOn = true);
+/*!
+ * @breif Turn logging ON/OFF
+ * @details If TRUE logging is turned ON, if FALSE logging is OFF. This doesn`t effect the dedicated log button on the remote control.
+ */
 boolean loggingOn = true;
 
 //Ultrasonic/Sonar variables:
+/**
+ * @def NUMBER_OF_SONARS
+ * Number of ultrasonic sensors connected to the Arduino board.
+ */
 #define NUMBER_OF_SONARS 3
+/**
+ * @def MAX_MEASURE_DISTANCE
+ * Maximum distance to which the ultrasonic sensors will measure (i.e. how long the sensors will wait for a returning signal).
+ */
 #define MAX_MEASURE_DISTANCE 200 // Maximum distance (in cm) to ping.
-NewPing sonar[NUMBER_OF_SONARS] = {   // Sensor object array.
-  NewPing(35, 33, MAX_MEASURE_DISTANCE), //left sonar
-  NewPing(41, 39, MAX_MEASURE_DISTANCE), // middle sonar
-  NewPing(47, 45, MAX_MEASURE_DISTANCE)  //right sonar
+
+/**
+ * @defgroup sonarPins Sonar Pins
+ * @ingroup pinLayout
+ * @brief Ultrasonic sensor logic pin layout.
+ */ 
+//@{
+/**Set trigger pin number for left ultrasonic sensor.*/
+#define TRIG_PIN_LEFT_SONAR 35
+/**Set echo pin number for left ultrasonic sensor.*/
+#define ECHO_PIN_LEFT_SONAR 33
+/**Set trigger pin number for middle ultrasonic sensor.*/
+#define TRIG_PIN_MIDDLE_SONAR 41
+/**Set echo pin number for middle ultrasonic sensor.*/
+#define ECHO_PIN_MIDDLE_SONAR 39
+/**Set tigger pin number for right ultrasonic sensor.*/
+#define TRIG_PIN_RIGHT_SONAR 47
+/**Set echo pin number for right ultrasonic sensor.*/
+#define ECHO_PIN_RINGT_SONAR 45
+//@}
+/*!
+ * @breif Initializes a NewPing sensor object array with 3 ultrasonic sensors.
+ * @details Constructor: NewPing sonar(trigger_pin, echo_pin [, max_cm_distance] = 500)
+ */
+NewPing sonar[NUMBER_OF_SONARS] = {
+  NewPing(TRIG_PIN_LEFT_SONAR, ECHO_PIN_LEFT_SONAR, MAX_MEASURE_DISTANCE), //left sonar
+  NewPing(TRIG_PIN_MIDDLE_SONAR, ECHO_PIN_MIDDLE_SONAR, MAX_MEASURE_DISTANCE), // middle sonar
+  NewPing(TRIG_PIN_RIGHT_SONAR, ECHO_PIN_RINGT_SONAR, MAX_MEASURE_DISTANCE)  //right sonar
 };
+/*!
+ * @breif axaaxaaxa
+ */
 int distance[NUMBER_OF_SONARS];
 
 //Motorshield object:
@@ -47,6 +91,11 @@ uint8_t directionRight = RELEASE;
 uint8_t directionLeft = RELEASE;
 
 //IR reciever:
+/*!
+ * @def RECEIVER_PIN
+ * @breif IR Reciever logic pin.
+ * @ingroup pinLayout
+ */
 #define RECEIVER_PIN 24
 IRrecv irrecv(RECEIVER_PIN);
 decode_results results;
@@ -103,23 +152,22 @@ void runMotors(float speedPercentage){
   motorL->run(directionLeft);
 }
 
-/**
+/*!
  * Changes speed and plays a tone when in a certain range from an obstacle.
  */
-class ChangeSpeed
-{
-	//Percentage of speed the motors should run when in slow range:
+class ChangeSpeed{
+  //Percentage of speed the motors should run when in slow range:
   float speedPercentage;
   //Distance needed for the slow to take effect:
-	int changeSpeedDistance;
+  int changeSpeedDistance;
   //End distance of the slow effect:
   int endChangeSpeedDistance;
   //Time that has to pass for the motors to be slow again by the same slow:
-	int resetTime;
+  int resetTime;
   //Stores if the motors are ready to run:
   boolean disableChangeSpeed;
   //Stores when them speed was last modified:
-	unsigned long previousMillis;
+  unsigned long previousMillis;
 
   //Tone variables:
   //Tone object takes vars: toneAC( frequency [, volume [, length [, background ]]] ).
@@ -130,9 +178,9 @@ class ChangeSpeed
   // Constructor - creates a ChangeSpeed object and initializes the member variables and state.
 
   public:
-    /**
+    /*!
      * Class constructor; creates a ChangeSpeed object and initializes the member variables and state
-     * @param changeSpeeddDis   Start of the distance at which you want the motors to change speed and play tone.
+     * @param changeSpeedDis   Start of the distance at which you want the motors to change speed and play tone.
      * @param endChangeSpeedDis End of the distance at which you want the motors to change speed and play tone.
      * @param toneFreq          The frequency you want the tone should play.
      * @param speedPer          The speed the motors will run.
@@ -149,11 +197,11 @@ class ChangeSpeed
         toneLength(2)
     {
     }
-/**
- * Checks if there is an obstacle in the given range (endChangeSpeedDistance-changeSpeedDistance)
- *    If there is: slows motors down to speedPercentage, plays tones (at: toneFrequency, toneFrequency and toneLength) and set a timer which waits 5s && for obstacles to be out of slow range.
- *    If there isn`t: if the last speed change occured more than 5s ago it resets the timer and a new slow can occur again.
- */
+  /**
+  * Checks if there is an obstacle in the given range (endChangeSpeedDistance-changeSpeedDistance)
+  *    If there is: slows motors down to speedPercentage, plays tones (at: toneFrequency, toneFrequency and toneLength) and set a timer which waits 5s && for obstacles to be out of slow range.
+  *    If there isn`t: if the last speed change occured more than 5s ago it resets the timer and a new slow can occur again.
+  */
   void CheckForObstacle(){
     unsigned long currentMillis = millis();
     //opticky zmensit if, rozepsat, odentrovat, komentar:
@@ -190,13 +238,18 @@ class ChangeSpeed
 ChangeSpeed slow(35, 20, 3000, 0.5);
 ChangeSpeed stop(20, 0, 3500, 0.0);
 
+/**
+ * Code that runs once after the device has been turned ON or connected to power.
+ */
 void setup() {
   //Startup.
   Serial.begin(9600);
   AFMS.begin();
   irrecv.enableIRIn();
 }
-
+/**
+ * Code that runs in a neverending (until turned OFF, disconnected from power or out of power) loop.
+ */
 void loop() {
 
   //Dives into for loop if the ir reciever caught a new signal.
