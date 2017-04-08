@@ -1,16 +1,18 @@
-/**
+/*!
  * @file Carduino.ino
  * @Author David Kunz
  * @date March, 2017
- * @brief Code running on the Arduino Mega unit.
+ * @brief 2WD DC Arduino car with obstacle detection.
+ * @details Small three-wheeled car with 2 DC electromotors powering the front wheels and a single revolving wheel in the back.
+ * The car is built around the Arduino platform and uses a set of three ultrasonic sensors to detect obstacles.
  */
-/**
+/*!
  *  @defgroup pinLayout Pin Layout
  *  @brief Layout of all pins used by name in the @ref Carduino.ino.
  */
 
 //Include used libraries:
-//IR reciever library (https://github.com/z3t0/Arduino-IRremote).
+//IR reciever library (https://github.com/z3t0/Arduino-IRremote) for more information see (http://www.righto.com/2009/08/multi-protocol-infrared-remote-library.html).
 #include <IRremote.h>
 //StreamEx library (used because of the lack of pritf in Arduino) (https://github.com/Chris--A/PrintEx).
 #include <PrintEx.h>
@@ -25,48 +27,49 @@
 
 //Logging:
 /*!
- * @breif Stream extension to create a Serial that can use printf. (Arduino does not have internal support for printf.)
+ * @brief Stream extension to create a Serial that can use printf. (Arduino does not have internal support for printf.)
  */
 StreamEx mySerial = Serial;
 /*!
- * @breif Turn logging ON/OFF
+ * @brief Turn logging ON/OFF
  * @details If TRUE logging is turned ON, if FALSE logging is OFF. This doesn`t effect the dedicated log button on the remote control.
  */
 boolean loggingOn = true;
 
 //Ultrasonic/Sonar variables:
-/**
+/*!
  * @def NUMBER_OF_SONARS
- * Number of ultrasonic sensors connected to the Arduino board.
+ * @brief Number of ultrasonic sensors connected to the Arduino board.
  */
 #define NUMBER_OF_SONARS 3
-/**
+/*!
  * @def MAX_MEASURE_DISTANCE
- * Maximum distance to which the ultrasonic sensors will measure (i.e. how long the sensors will wait for a returning signal).
+ * @brief Maximum distance to which the ultrasonic sensors will measure.
+ * @details Do not go over 200cm without increasing the delay time in the updateDistance() function. Increasing MAX_MEASURE_DISTANCE without increasing the delay will mean that the sensors don`t have enough time to get a returning signal and the output distances will be incorrect.
  */
 #define MAX_MEASURE_DISTANCE 200 // Maximum distance (in cm) to ping.
 
-/**
+/*!
  * @defgroup sonarPins Sonar Pins
  * @ingroup pinLayout
  * @brief Ultrasonic sensor logic pin layout.
  */ 
 //@{
-/**Set trigger pin number for left ultrasonic sensor.*/
+/*!Set trigger pin number for left ultrasonic sensor.*/
 #define TRIG_PIN_LEFT_SONAR 35
-/**Set echo pin number for left ultrasonic sensor.*/
+/*!Set echo pin number for left ultrasonic sensor.*/
 #define ECHO_PIN_LEFT_SONAR 33
-/**Set trigger pin number for middle ultrasonic sensor.*/
+/*!Set trigger pin number for middle ultrasonic sensor.*/
 #define TRIG_PIN_MIDDLE_SONAR 41
-/**Set echo pin number for middle ultrasonic sensor.*/
+/*!Set echo pin number for middle ultrasonic sensor.*/
 #define ECHO_PIN_MIDDLE_SONAR 39
-/**Set tigger pin number for right ultrasonic sensor.*/
+/*!Set tigger pin number for right ultrasonic sensor.*/
 #define TRIG_PIN_RIGHT_SONAR 47
-/**Set echo pin number for right ultrasonic sensor.*/
+/*!Set echo pin number for right ultrasonic sensor.*/
 #define ECHO_PIN_RINGT_SONAR 45
 //@}
 /*!
- * @breif Initializes a NewPing sensor object array with 3 ultrasonic sensors.
+ * @brief Initializes a NewPing sensor object array with 3 ultrasonic sensors.
  * @details Constructor: NewPing sonar(trigger_pin, echo_pin [, max_cm_distance] = 500)
  */
 NewPing sonar[NUMBER_OF_SONARS] = {
@@ -75,48 +78,86 @@ NewPing sonar[NUMBER_OF_SONARS] = {
   NewPing(TRIG_PIN_RIGHT_SONAR, ECHO_PIN_RINGT_SONAR, MAX_MEASURE_DISTANCE)  //right sonar
 };
 /*!
- * @breif axaaxaaxa
+ * @brief Define a integer array where the distances measured by the ultrasonic sensors will be stored.
+ * @sa updateDistance()
  */
 int distance[NUMBER_OF_SONARS];
 
-//Motorshield object:
+//Motorshield:
+/*!
+ * @brief Create the motor shield object with the default I2C address.
+ */
 Adafruit_MotorShield AFMS = Adafruit_MotorShield();
+/*!
+ * @brief Select the motorshield port 1 for left motor.
+ */
 Adafruit_DCMotor *motorL = AFMS.getMotor(1);
+/*!
+ * @brief Select the motorshield port 2 for right motor.
+ */
 Adafruit_DCMotor *motorR = AFMS.getMotor(2);
 
 //Motor variables:
+/*!
+ * @brief The coefficient of speed for the right wheel.
+ * @details Used as a percentage of movement speed to the right wheel.
+ * This is used as a method of steering when speedLeftCoefficient and speedRightCoefficient have different values.
+ * Values: 0.0(no movement)-1.0(full speed)
+ */
 float speedRightCoefficient = 0.0;
+/*!
+ * @brief The coefficient of speed for the left wheel.
+ * @details Used as a percentage of movement speed to the left wheel.
+ * This is used as a method of steering when speedLeftCoefficient and speedRightCoefficient have different values.
+ * Values: 0.0(no movement)-1.0(full speed)
+ * @sa setMovementVars(float spdL, float spdR, uint8_t direcL, uint8_t direcR)
+ * @sa runMotors(float speedPercentage)
+ */
 float speedLeftCoefficient = 0.0;
+/*!
+ * @brief Sets direction of the right motor.
+ * @details Values: FORWARD = 1, BACKWARD = 2(, BRAKE = 3), RELEASE = 4
+ */
 uint8_t directionRight = RELEASE;
+/*!
+ * @brief Sets direction of the left motor.
+ * @details Values: FORWARD = 1, BACKWARD = 2(, BRAKE = 3), RELEASE = 4
+ */
 uint8_t directionLeft = RELEASE;
 
 //IR reciever:
 /*!
  * @def RECEIVER_PIN
- * @breif IR Reciever logic pin.
+ * @brief IR Reciever logic pin.
  * @ingroup pinLayout
  */
 #define RECEIVER_PIN 24
+/*!
+ * @brief Set a reciever pin.
+ */
 IRrecv irrecv(RECEIVER_PIN);
+/*!
+ * @brief Correct results from the IR reciever are stored.
+ */
 decode_results results;
 
 //Initial gear speed:
 int motorSpeed = 150;
-/**
+/*!
  * Set speed coefficients and direction for both motors.
- * @param spdL   Speed left coefficient; percentage of power given to left motor (values 0.0-1.0).
- * @param spdR   Speed right coefficient; percentage of power given to left motor (values 0.0-1.0).
- * @param direcL Left motor direction; which direrection should the left motor run (values: FORWARD (=1), BACKWARD (=2), RELEASE (=4))(note: is relative to the wiring).
- * @param direcR Right motor direction; which direrection should the right motor run (values: FORWARD (=1), BACKWARD (=2), RELEASE (=4))(note: is relative to the wiring).
+ * @param speedL   Speed left coefficient; percentage of power given to left motor (values 0.0-1.0).
+ * @param speedR   Speed right coefficient; percentage of power given to left motor (values 0.0-1.0).
+ * @param directionL Left motor direction; which direrection should the left motor run (values: FORWARD (=1), BACKWARD (=2), RELEASE (=4))(note: is relative to the wiring).
+ * @param directionR Right motor direction; which direrection should the right motor run (values: FORWARD (=1), BACKWARD (=2), RELEASE (=4))(note: is relative to the wiring).
  */
-void setMovementVars(float spdL, float spdR, uint8_t direcL, uint8_t direcR){
-  speedLeftCoefficient = spdL;
-  speedRightCoefficient = spdR;
-  directionLeft = direcL;
-  directionRight = direcR;
+void setMovementVars(float speedL, float speedR, uint8_t directionL, uint8_t directionR){
+  speedLeftCoefficient = speedL;
+  speedRightCoefficient = speedR;
+  directionLeft = directionL;
+  directionRight = directionR;
 }
 
-/**
+/*!
  * Prints some current data variables on the serial monitor.
  * @param command Title to the data printed.
  * @param logOn   Turns logging on (true) and off (false)(note: true by default).
@@ -130,9 +171,9 @@ void log(String command, boolean logOn = true){
   }
 }
 
-/**
- * Saves current distances found by each sonar to the distance array.
- * Note: takes 3x15ms to execute (takes 11,8ms to get ultrasonic output).
+/*!
+ * @brief Saves current distances found by each sonar to the distance array.
+ * @remark Takes 3x15ms to execute (takes 11,8ms to get ultrasonic output).
  */
 void updateDistance(){
   for (uint8_t i = 0; i < NUMBER_OF_SONARS; i++){
@@ -141,9 +182,9 @@ void updateDistance(){
   }
 }
 
-/**
- * Runs the motors at the given total speed percentage.
- * @param spdPer Speed percentage; percentage of total power to both motors.
+/*!
+ * @brief Runs the motors at the given total speed percentage.
+ * @param speedPercentage Percentage of total power to both motors. Values: 0.0-1.0.
  */
 void runMotors(float speedPercentage){
   motorR->setSpeed(speedRightCoefficient*motorSpeed*speedPercentage);
@@ -153,7 +194,7 @@ void runMotors(float speedPercentage){
 }
 
 /*!
- * Changes speed and plays a tone when in a certain range from an obstacle.
+ * @brief Changes speed and plays a tone when in a certain distance range from an obstacle.
  */
 class ChangeSpeed{
   //Percentage of speed the motors should run when in slow range:
@@ -197,7 +238,7 @@ class ChangeSpeed{
         toneLength(2)
     {
     }
-  /**
+  /*!
   * Checks if there is an obstacle in the given range (endChangeSpeedDistance-changeSpeedDistance)
   *    If there is: slows motors down to speedPercentage, plays tones (at: toneFrequency, toneFrequency and toneLength) and set a timer which waits 5s && for obstacles to be out of slow range.
   *    If there isn`t: if the last speed change occured more than 5s ago it resets the timer and a new slow can occur again.
@@ -235,26 +276,39 @@ class ChangeSpeed{
 };
 
 //Make ChangeSpeed objects.
+/*!
+ * @brief Create a ChangeSpeed slow.
+ * @details Create a ChangeSpeed object that slows the car to 50% on entering the range 35-20cm from the car and plays a tone at 3000Hz.
+ */
 ChangeSpeed slow(35, 20, 3000, 0.5);
+/*!
+ * @brief Create a ChangeSpeed stop.
+ * @details Create a ChangeSpeed object that stops the car on entering the range 20-0cm from the car and plays a tone at 3500Hz.
+ */
 ChangeSpeed stop(20, 0, 3500, 0.0);
 
-/**
- * Code that runs once after the device has been turned ON or connected to power.
+/*!
+ * @brief Code that runs once after the device has been turned ON or connected to power.
  */
 void setup() {
-  //Startup.
+
+  // Opens serial port and sets data rate (baud) to 9600 bps.
   Serial.begin(9600);
+  
+  // Adafruit_MotorShield initialization. (Set PWM frequency and begin Wire communication.)
   AFMS.begin();
+  
+  // IRremote class initialization. (Sets pinMode, enables interrupts and enables the timer.)
   irrecv.enableIRIn();
 }
-/**
- * Code that runs in a neverending (until turned OFF, disconnected from power or out of power) loop.
+/*!
+ * @brief Code that runs in a never-ending (until turned OFF, disconnected from power or out of power) loop.
  */
 void loop() {
 
-  //Dives into for loop if the ir reciever caught a new signal.
+  //Dives into for loop if the IR reciever caught a new signal.
   if (irrecv.decode(&results)) {
-    //Check if the signal corresponds with any action.
+    //Check if the signal corresponds with any mapped action.
     switch (results.value){
       case 0xFF18E7: // Go straight (button ▲)
         setMovementVars(1.0, 1.0, FORWARD, FORWARD);

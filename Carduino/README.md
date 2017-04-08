@@ -8,6 +8,7 @@ Some general info.
 # Ahoj
 
 This manual is divided in the following sections:
+- [Popis výroby](Popis výroby.md)
 - @subpage intro
 - @subpage advanced "Advanced usage"
 
