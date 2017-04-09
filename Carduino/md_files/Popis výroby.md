@@ -1,6 +1,7 @@
-#Popis výroby
+\page popis_vyroby Popis výroby
+\tableofcontents
 
-+ Seznam použitých součástek naleznete [zde](Seznam součástek.md).
++ Seznam použitých součástek naleznete \subpage Seznam_soucastek "tady".
 
 ##Příprava součástek
 ---------------

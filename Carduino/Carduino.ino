@@ -36,6 +36,11 @@ StreamEx mySerial = Serial;
  */
 boolean loggingOn = true;
 
+/*!
+ * @brief Stores TRUE if you want the ChangeSpeed tone to be played.
+ */
+boolean toneOn = true;
+
 //Ultrasonic/Sonar variables:
 /*!
  * @def NUMBER_OF_SONARS
@@ -160,14 +165,14 @@ void setMovementVars(float speedL, float speedR, uint8_t directionL, uint8_t dir
 /*!
  * Prints some current data variables on the serial monitor.
  * @param command Title to the data printed.
- * @param logOn   Turns logging on (true) and off (false)(note: true by default).
+ * @param logOn   Turns logging on (TRUE) and off (FALSE)(note: TRUE by default).
  */
 void log(String command, boolean logOn = true){
   if (logOn == true){
     float secs = millis()/1000.0;
     Serial.println(command);
-    mySerial.printf("Data:\t(%.1f)\n\tSpeedLeftCoefficient: %.2f\n\tspeedRightCoefficient: %.2f\n\tdistance Left: %d\n\tdistance Middle: %d\n\tdistance Right: %d\n",
-                                secs, speedLeftCoefficient, speedRightCoefficient, distance[0], distance[1], distance[2]);
+    mySerial.printf("Data:\t(%.1f)\n\tspeedLeftCoefficient: %.2f\n\tspeedRightCoefficient: %.2f\n\tdistance Left: %d\n\tdistance Middle: %d\n\tdistance Right: %d\n\ttone ON: %s\n",
+                                secs, speedLeftCoefficient, speedRightCoefficient, distance[0], distance[1], distance[2], toneOn ? "true" : "false");
   }
 }
 
@@ -197,7 +202,7 @@ void runMotors(float speedPercentage){
  * @brief Changes speed and plays a tone when in a certain distance range from an obstacle.
  */
 class ChangeSpeed{
-  //Percentage of speed the motors should run when in slow range:
+  //Percentage of speed the motors should run when in slow/stop range:
   float speedPercentage;
   //Distance needed for the slow to take effect:
   int changeSpeedDistance;
@@ -205,10 +210,14 @@ class ChangeSpeed{
   int endChangeSpeedDistance;
   //Time that has to pass for the motors to be slow again by the same slow:
   int resetTime;
-  //Stores if the motors are ready to run:
+  //Stores FALSE if the motors are ready to run:
   boolean disableChangeSpeed;
   //Stores when them speed was last modified:
   unsigned long previousMillis;
+  //Stores TRUE if there is and obstacle in the given range of each sonar:
+  boolean inChangeSpeedRange[NUMBER_OF_SONARS];
+  //Stores TRUE if the car is going backward:
+  boolean notGoingBackward;
 
   //Tone variables:
   //Tone object takes vars: toneAC( frequency [, volume [, length [, background ]]] ).
@@ -216,14 +225,12 @@ class ChangeSpeed{
   int toneVolume;
   int toneLength;
 
-  // Constructor - creates a ChangeSpeed object and initializes the member variables and state.
-
   public:
     /*!
      * Class constructor; creates a ChangeSpeed object and initializes the member variables and state
      * @param changeSpeedDis   Start of the distance at which you want the motors to change speed and play tone.
      * @param endChangeSpeedDis End of the distance at which you want the motors to change speed and play tone.
-     * @param toneFreq          The frequency you want the tone should play.
+     * @param toneFreq          The frequency you want the tone to play.
      * @param speedPer          The speed the motors will run.
      */
     ChangeSpeed(int changeSpeedDis, int endChangeSpeedDis, int toneFreq, float speedPer)
@@ -239,30 +246,25 @@ class ChangeSpeed{
     {
     }
   /*!
-  * Checks if there is an obstacle in the given range (endChangeSpeedDistance-changeSpeedDistance)
-  *    If there is: slows motors down to speedPercentage, plays tones (at: toneFrequency, toneFrequency and toneLength) and set a timer which waits 5s && for obstacles to be out of slow range.
-  *    If there isn`t: if the last speed change occured more than 5s ago it resets the timer and a new slow can occur again.
-  */
+   * @brief Checks for an obtacle in front of the car.
+   * @details Checks if there is an obstacle in the given range (endChangeSpeedDistance-changeSpeedDistance) in front of the sensors.
+   * If there is: slows motors down to speedPercentage, plays tones (at: toneFrequency, toneFrequency and toneLength) and set a timer which waits 5s for obstacles to be out of slow range.
+   * If there isn`t: if the last speed change occured more than 5s ago it resets the timer and a new slow can occur again.
+   */
   void CheckForObstacle(){
     unsigned long currentMillis = millis();
-    //opticky zmensit if, rozepsat, odentrovat, komentar:
-    
     //Check and note if any sonar found an obstacle in the given range.
-    boolean inChangeSpeedRange[NUMBER_OF_SONARS] = {
-      //Left sonar in changeSpeed range:
-      (0 < distance[0] && distance[0] <= changeSpeedDistance && endChangeSpeedDistance < distance[0]), 
-      //Middle sonar in changeSpeed range:
-      (0 < distance[1] && distance[1] <= changeSpeedDistance && endChangeSpeedDistance < distance[1]),
-      //Right sonar in changeSpeed range:
-      (0 < distance[2] && distance[2] <= changeSpeedDistance && endChangeSpeedDistance < distance[2])
-    };
-
+    for(int i = 0; i < NUMBER_OF_SONARS; i++){
+      inChangeSpeedRange[i] = (0 < distance[i] && distance[i] <= changeSpeedDistance && endChangeSpeedDistance < distance[i]);
+    }
+    //Is TRUE if the car isn`t going backward.
+    notGoingBackward = (directionLeft != BACKWARD && directionRight != BACKWARD);
     //If any of the sonars found an obstacle dive into if loop.
     if(inChangeSpeedRange[0] || inChangeSpeedRange[1] || inChangeSpeedRange[2]){
-      //Play tone.
-      toneAC(toneFrequency, toneFrequency, toneLength);
-      //If the speed hasn`t been changed in resetTime (5s) dive into if loop.
-      if(disableChangeSpeed == false){
+      //If tone toggled ON, play tone.
+      if (toneOn == true){toneAC(toneFrequency, toneFrequency, toneLength);}
+      //If the speed hasn`t been changed in resetTime (5s) and car isn`t going backward dive into if loop.
+      if(disableChangeSpeed == false && notGoingBackward){
         runMotors(speedPercentage);
         disableChangeSpeed = true;
         previousMillis = currentMillis;
@@ -292,13 +294,13 @@ ChangeSpeed stop(20, 0, 3500, 0.0);
  */
 void setup() {
 
-  // Opens serial port and sets data rate (baud) to 9600 bps.
+  //Opens serial port and sets data rate (baud) to 9600 bps.
   Serial.begin(9600);
   
-  // Adafruit_MotorShield initialization. (Set PWM frequency and begin Wire communication.)
+  //Adafruit_MotorShield initialization. (Set PWM frequency and begin Wire communication.)
   AFMS.begin();
   
-  // IRremote class initialization. (Sets pinMode, enables interrupts and enables the timer.)
+  //IRremote class initialization. (Sets pinMode, enables interrupts and enables the timer.)
   irrecv.enableIRIn();
 }
 /*!
@@ -310,61 +312,72 @@ void loop() {
   if (irrecv.decode(&results)) {
     //Check if the signal corresponds with any mapped action.
     switch (results.value){
-      case 0xFF18E7: // Go straight (button ▲)
+      case 0xFF18E7: //Go straight (button ▲)
         setMovementVars(1.0, 1.0, FORWARD, FORWARD);
         log("CMD: Go straight", loggingOn);
         break;
-      case 0xFF5AA5: // Turn right (button ►)
+      case 0xFF5AA5: //Turn right (button ►)
         setMovementVars(1.0, 1.0/3.0, FORWARD, FORWARD);
         log("CMD: Turn right", loggingOn);
         break;
-      case 0xFF10EF: // Turn left (button ◄)
+      case 0xFF10EF: //Turn left (button ◄)
         setMovementVars(1.0/3.0, 1.0, FORWARD, FORWARD);
         log("CMD: Turn left", loggingOn);
         break;
-      case 0xFF4AB5: // Go backwards (button ▼)
+      case 0xFF4AB5: //Go backward (button ▼)
         setMovementVars(2.0/3.0, 2.0/3.0, BACKWARD, BACKWARD);
         log("CMD: Go backward", loggingOn);
         break;
-      case 0xFF38C7: // release (button OK)
+      case 0xFF38C7: //release (button OK)
         setMovementVars(0.0, 0.0, RELEASE, RELEASE);
         break;
       //CHANGE SPEED:
-      case 0xFFA25D: // speed gear 1 (button 1)
+      case 0xFFA25D: //speed gear 1 (button 1)
         motorSpeed = 43;
         log("CMD: Gear 1", loggingOn);
         break;
-      case 0xFF629D: // speed gear 2 (button 2)
+      case 0xFF629D: //speed gear 2 (button 2)
         motorSpeed = 85;
         log("CMD: Gear 2", loggingOn);
         break;
-      case 0xFFE21D: // speed gear 3 (button 3)
+      case 0xFFE21D: //speed gear 3 (button 3)
         motorSpeed = 128;
         log("CMD: Gear 3", loggingOn);
         break;
-      case 0xFF22DD: // speed gear 4 (button 4)
+      case 0xFF22DD: //speed gear 4 (button 4)
         motorSpeed = 170;
         log("CMD: Gear 4", loggingOn);
         break;
-      case 0xFF02FD: // speed gear 5 (button 5)
+      case 0xFF02FD: //speed gear 5 (button 5)
         motorSpeed = 213;
         log("CMD: Gear 5", loggingOn);
         break;
-      case 0xFFC23D: // speed gear 6 (button 6)
+      case 0xFFC23D: //speed gear 6 (button 6)
         motorSpeed = 255;
         log("CMD: Gear 6", loggingOn);
         break;
-      case 0xFF6897: // slow down (button *)
+      case 0xFF6897: //slow down (button *)
         motorSpeed = motorSpeed - 20;
         if(motorSpeed < 0) motorSpeed = 0;
         break;
-      case 0xFFB04F: // speed up (button #)
+      case 0xFFB04F: //speed up (button #)
         motorSpeed = motorSpeed + 20;
         if(motorSpeed > 255) motorSpeed = 255;
         break;
-      case 0xFFE01F: // print everything (button 7)
+      case 0xFFE01F: //Print some sensor and motor data (button 7)
         log("CMD: Check data");
         break;
+      case 0xFFA857: //Toggle tone ON/OFF (button 8)
+        if(toneOn == true)toneOn = false; else toneOn = true;
+        break;
+      /* Add functionality:
+      case 0xFF906F: //Nothing so far (button 9)
+        //ENTER AN ACTION
+        break;
+      case 0xFF9867: //Nothing so far (button 0)
+        //ENTER AN ACTION
+        break;
+      */
     }
     //Runs motors at 100% (without slow).
     runMotors(1.0);
