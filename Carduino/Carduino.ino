@@ -1,6 +1,6 @@
 /*!
  * @file Carduino.ino
- * @Author David Kunz
+ * @author David Kunz
  * @date March, 2017
  * @brief 2WD DC Arduino car with obstacle detection.
  * @details Small three-wheeled car with 2 DC electromotors powering the front wheels and a single revolving wheel in the back.
@@ -146,7 +146,10 @@ IRrecv irrecv(RECEIVER_PIN);
  */
 decode_results results;
 
-//Initial gear speed:
+/*!
+ * @brief Initial motor speed.
+ * @details Speed the motors will run when the Arduino unit is turned ON.
+ */
 int motorSpeed = 150;
 /*!
  * Set speed coefficients and direction for both motors.
@@ -314,18 +317,22 @@ void loop() {
     switch (results.value){
       case 0xFF18E7: //Go straight (button ▲)
         setMovementVars(1.0, 1.0, FORWARD, FORWARD);
+        runMotors(1.0);
         log("CMD: Go straight", loggingOn);
         break;
       case 0xFF5AA5: //Turn right (button ►)
         setMovementVars(1.0, 1.0/3.0, FORWARD, FORWARD);
+        runMotors(1.0);
         log("CMD: Turn right", loggingOn);
         break;
       case 0xFF10EF: //Turn left (button ◄)
         setMovementVars(1.0/3.0, 1.0, FORWARD, FORWARD);
+        runMotors(1.0);
         log("CMD: Turn left", loggingOn);
         break;
       case 0xFF4AB5: //Go backward (button ▼)
         setMovementVars(2.0/3.0, 2.0/3.0, BACKWARD, BACKWARD);
+        runMotors(1.0);
         log("CMD: Go backward", loggingOn);
         break;
       case 0xFF38C7: //release (button OK)
@@ -379,9 +386,6 @@ void loop() {
         break;
       */
     }
-    //Runs motors at 100% (without slow).
-    runMotors(1.0);
-
     //Reset IR reciever to wait for a new signal.
     irrecv.resume();
   }

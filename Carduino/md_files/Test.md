@@ -3,8 +3,6 @@
 Take me here [...](#labelid2)
 Take me here [...](@ref labelid2)
 
-Take me to [pookie](#pookie)
-
 you can write text [with links](http://example.com) inline or [link references][1].
 
 * one _thing_ has *em*phasis
@@ -17,7 +15,6 @@ you can write text [with links](http://example.com) inline or [link references][
 hello world
 ===========
 
-<this_is inline="xml"></this_is>
 
 > markdown is so cool
 
@@ -26,7 +23,5 @@ hello world
 1. one thing (yeah!)
 2. two thing `i can write code`, and `more` wipee!
 
-
-### <a name="pookie"></a>Some heading
 
 # hello world {#labelid2}
