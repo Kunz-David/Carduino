@@ -1,20 +1,13 @@
-\mainpage A simple manual
-\tableofcontents
+\mainpage Hlavní stránka
 
-Some general info.
+# Projekt Carduino
 
+Carduino je autíčko na dálkové ovládání postavené nad platformou Arduino.
 
-# Ahoj
-
-This manual is divided in the following sections:
+Tato příručka je rozdělena do následujících sekcí:
 - \subpage popis_vyroby
-- \subpage intro
-- \subpage advanced "Advanced usage"
+- \subpage pouzity_software
+- \subpage navod_k_pouziti
+- \subpage moznosti_rozsireni
 
-\page intro Introduction
-This page introduces the user to the topic.
-Now you can proceed to the \ref advanced "advanced section".
-
-\page advanced Advanced Usage
-This page is for advanced users.
-Make sure you have first read \ref intro "the introduction".
+\image html Carduino_1.jpg "Carduino" width=100%

@@ -10,6 +10,10 @@
  *  @defgroup pinLayout Pin Layout
  *  @brief Layout of all pins used by name in the @ref Carduino.ino.
  */
+/*!
+ *  @defgroup userConfigurable User configurable
+ *  @brief Variables and macros easily configurable by user.
+ */
 
 //Include used libraries:
 //IR reciever library (https://github.com/z3t0/Arduino-IRremote) for more information see (http://www.righto.com/2009/08/multi-protocol-infrared-remote-library.html).
@@ -33,11 +37,13 @@ StreamEx mySerial = Serial;
 /*!
  * @brief Turn logging ON/OFF
  * @details If TRUE logging is turned ON, if FALSE logging is OFF. This doesn`t effect the dedicated log button on the remote control.
+ * @ingroup userConfigurable
  */
 boolean loggingOn = true;
 
 /*!
  * @brief Stores TRUE if you want the ChangeSpeed tone to be played.
+ * @ingroup userConfigurable
  */
 boolean toneOn = true;
 
@@ -50,9 +56,10 @@ boolean toneOn = true;
 /*!
  * @def MAX_MEASURE_DISTANCE
  * @brief Maximum distance to which the ultrasonic sensors will measure.
- * @details Do not go over 200cm without increasing the delay time in the updateDistance() function. Increasing MAX_MEASURE_DISTANCE without increasing the delay will mean that the sensors don`t have enough time to get a returning signal and the output distances will be incorrect.
+ * @remark The ultrasonic sensors I used have a maximum of 400cm.
+ * @ingroup userConfigurable
  */
-#define MAX_MEASURE_DISTANCE 200 // Maximum distance (in cm) to ping.
+#define MAX_MEASURE_DISTANCE 400 // Maximum distance (in cm) to ping.
 
 /*!
  * @defgroup sonarPins Sonar Pins
@@ -149,6 +156,7 @@ decode_results results;
 /*!
  * @brief Initial motor speed.
  * @details Speed the motors will run when the Arduino unit is turned ON.
+ * @ingroup userConfigurable
  */
 int motorSpeed = 150;
 /*!
@@ -181,12 +189,13 @@ void log(String command, boolean logOn = true){
 
 /*!
  * @brief Saves current distances found by each sonar to the distance array.
- * @remark Takes 3x15ms to execute (takes 11,8ms to get ultrasonic output).
+ * @remark Takes some time to execute as the sonars have to wait for the returning sound.
  */
 void updateDistance(){
   for (uint8_t i = 0; i < NUMBER_OF_SONARS; i++){
     distance[i] = sonar[i].ping_cm();
-    delay(15); //it takes 11,8ms for signal that bounces off an obstacle 200cm away to return
+    //Delay for the time needed for the sound to be recieved + 2ms.
+    delay((MAX_MEASURE_DISTANCE / 34) * 2 + 2);
   }
 }
 
@@ -288,7 +297,7 @@ class ChangeSpeed{
 ChangeSpeed slow(35, 20, 3000, 0.5);
 /*!
  * @brief Create a ChangeSpeed stop.
- * @details Create a ChangeSpeed object that stops the car on entering the range 20-0cm from the car and plays a tone at 3500Hz.
+ * @details Create a ChangeSpeed object that stops the car on entering the range 20-1cm (cannot detect distances under 1cm) from the car and plays a tone at 3500Hz.
  */
 ChangeSpeed stop(20, 0, 3500, 0.0);
 
@@ -337,39 +346,48 @@ void loop() {
         break;
       case 0xFF38C7: //release (button OK)
         setMovementVars(0.0, 0.0, RELEASE, RELEASE);
+        runMotors(0.0);
         break;
       //CHANGE SPEED:
       case 0xFFA25D: //speed gear 1 (button 1)
         motorSpeed = 43;
+        runMotors(1.0);
         log("CMD: Gear 1", loggingOn);
         break;
       case 0xFF629D: //speed gear 2 (button 2)
         motorSpeed = 85;
+        runMotors(1.0);
         log("CMD: Gear 2", loggingOn);
         break;
       case 0xFFE21D: //speed gear 3 (button 3)
         motorSpeed = 128;
+        runMotors(1.0);
         log("CMD: Gear 3", loggingOn);
         break;
       case 0xFF22DD: //speed gear 4 (button 4)
         motorSpeed = 170;
+        runMotors(1.0);
         log("CMD: Gear 4", loggingOn);
         break;
       case 0xFF02FD: //speed gear 5 (button 5)
         motorSpeed = 213;
+        runMotors(1.0);
         log("CMD: Gear 5", loggingOn);
         break;
       case 0xFFC23D: //speed gear 6 (button 6)
         motorSpeed = 255;
+        runMotors(1.0);
         log("CMD: Gear 6", loggingOn);
         break;
       case 0xFF6897: //slow down (button *)
         motorSpeed = motorSpeed - 20;
         if(motorSpeed < 0) motorSpeed = 0;
+        runMotors(1.0);
         break;
       case 0xFFB04F: //speed up (button #)
         motorSpeed = motorSpeed + 20;
         if(motorSpeed > 255) motorSpeed = 255;
+        runMotors(1.0);
         break;
       case 0xFFE01F: //Print some sensor and motor data (button 7)
         log("CMD: Check data");
